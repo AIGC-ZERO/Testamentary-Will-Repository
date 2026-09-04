@@ -90,3 +90,7 @@ H5 申请人。敏感字段：`password_hash`、`id_no`（建议生产列加密/
 npx prisma migrate dev --name <change>
 npx prisma studio   # 可视化检视
 ```
+
+## 6. SQL 快照（仓库内）
+
+完整库导出见 `backend/db/will_repository_seed.sql`，恢复说明见 `backend/db/README.md`。

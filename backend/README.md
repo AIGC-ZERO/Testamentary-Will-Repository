@@ -26,6 +26,13 @@ npm run start:dev
 | H5 | `13800000001` | `ChangeMe123!` |
 | 短信验证码（开发） | — | `888888` |
 
-## 文档
+## 数据库快照
 
-详见 [`../docs/backend/`](../docs/backend/README.md)。
+开发库 SQL 快照见 [`db/`](./db/README.md)（结构 + 演示数据，可一键导入）。
+
+日常开发仍推荐：
+
+```bash
+npx prisma migrate deploy
+npm run prisma:seed
+```
