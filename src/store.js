@@ -31,8 +31,8 @@ export const store = reactive({
   ],
   user: saved?.user || {
     name: '田野',
-    mobile: '19526955095',
-    password: '******',
+    mobile: '',
+    password: '',
     gender: '0',
     idNo: '370705199810173531',
     marriage: '已婚',

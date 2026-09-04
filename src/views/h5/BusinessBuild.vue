@@ -253,7 +253,7 @@ function sendCode() {
 
 function verifyCode() {
   if (smsCode.value.length !== 6) return toast('请输入6位验证码')
-  if (smsCode.value !== '123456') return toast('验证码错误')
+  if (!/^\d{4,6}$/.test(smsCode.value)) return toast('请输入验证码')
   phoneVerified.value = true
   showCodeDialog.value = false
   toast('手机号验证成功')

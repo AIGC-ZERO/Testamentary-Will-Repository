@@ -50,16 +50,16 @@ import { store, persist, toast } from '../../store'
 
 const router = useRouter()
 const tab = ref('pwd')
-const mobile = ref('19526955095')
-const password = ref('123456')
-const code = ref('123456')
+const mobile = ref('')
+const password = ref('')
+const code = ref('')
 const role = ref('0')
 const counting = ref(false)
 const count = ref(60)
 
 function sendCode() {
   if (counting.value) return
-  if (mobile.value.length < 11) return toast('请输入正确手机号')
+  if (!/^1\d{10}$/.test(mobile.value)) return toast('请输入正确手机号')
   counting.value = true
   count.value = 60
   toast('验证码已发送')
@@ -70,14 +70,14 @@ function sendCode() {
 }
 
 function login() {
-  if (mobile.value !== '19526955095' && mobile.value.length < 11) {
-    return toast('请输入手机号')
+  if (!/^1\d{10}$/.test(mobile.value)) {
+    return toast('请输入正确手机号')
   }
-  if (tab.value === 'pwd' && password.value !== '123456') {
-    return toast('密码错误')
+  if (tab.value === 'pwd' && !password.value) {
+    return toast('请输入密码')
   }
-  if (tab.value === 'sms' && code.value !== '123456') {
-    return toast('验证码错误')
+  if (tab.value === 'sms' && !/^\d{4,6}$/.test(code.value)) {
+    return toast('请输入验证码')
   }
   if (role.value === '2') {
     toast('正在跳转管理后台')
@@ -85,7 +85,9 @@ function login() {
   }
   store.loggedIn = true
   store.user.mobile = mobile.value
-  store.user.name = mobile.value === '19526955095' ? '田野' : '注册用户'
+  if (!store.user.name || store.user.name === '注册用户') {
+    store.user.name = '用户' + mobile.value.slice(-4)
+  }
   persist()
   toast('登录成功')
   router.push('/h5')

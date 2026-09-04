@@ -44,7 +44,7 @@
         <div class="tags">
           <span class="tag tag-blue" v-for="t in tags" :key="t">{{ t }}</span>
         </div>
-        <p class="hint">登录账号 19526955095 · 密码/验证码 123456</p>
+        <p class="hint">支持用户端业务办理与管理端审核作业一体化入口</p>
       </section>
     </div>
   </div>
