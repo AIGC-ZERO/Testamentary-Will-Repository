@@ -1,5 +1,8 @@
 <template>
   <div class="page">
+    <div v-if="loading" class="banner">正在加载登记数据…</div>
+    <div v-else-if="offline" class="banner warn">后端暂不可用，已使用本地缓存；写操作将仅保存在本地</div>
+
     <section class="panel">
       <div class="head">
         <h3>登记审核</h3>
@@ -28,9 +31,9 @@
             <td>{{ r.certNo || '—' }}</td>
             <td>{{ r.createdAt }}</td>
             <td class="ops" @click.stop>
-              <button class="btn btn-sm btn-primary" :disabled="!canReview(r)" @click="approve(r)">通过</button>
-              <button class="btn btn-sm btn-ghost" :disabled="!canReview(r)" @click="supplement(r)">退回补充</button>
-              <button class="btn btn-sm btn-ghost" :disabled="!canReview(r)" @click="reject(r)">驳回</button>
+              <button class="btn btn-sm btn-primary" :disabled="!canReview(r) || busyId === r.id" @click="approve(r)">通过</button>
+              <button class="btn btn-sm btn-ghost" :disabled="!canReview(r) || busyId === r.id" @click="supplement(r)">退回补充</button>
+              <button class="btn btn-sm btn-ghost" :disabled="!canReview(r) || busyId === r.id" @click="reject(r)">驳回</button>
               <button class="btn btn-sm btn-ghost" @click="detail = r">详情</button>
             </td>
           </tr>
@@ -58,11 +61,21 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
-import { store, persist, toast, pushAudit, now } from '../../store'
+import { computed, onMounted, ref } from 'vue'
+import { store, persist, toast, pushAudit, now, applyRegistrations } from '../../store'
+import {
+  fetchRegistrations,
+  approveRegistration,
+  supplementRegistration,
+  rejectRegistration,
+} from '../../api/admin'
+import { ApiError } from '../../api/http'
 
 const filter = ref('all')
 const detail = ref(null)
+const loading = ref(false)
+const offline = ref(false)
+const busyId = ref('')
 
 const tabs = computed(() => [
   { key: 'all', label: '全部', count: store.registrations.length },
@@ -90,50 +103,115 @@ function canReview(r) {
   return ['审核中', '已提交', '退回补充'].includes(r.status)
 }
 
-function approve(r) {
-  r.status = '已受理'
-  r.certNo = r.certNo || `QD-WILL-${now().replace(/\D/g, '').slice(0, 8)}-${r.id.slice(-3)}`
-  r.hash = r.hash || ('h' + Math.random().toString(16).slice(2, 6) + '…' + Math.random().toString(16).slice(2, 6))
-  const smsId = (store.sms[0]?.id || 0) + 1
-  store.sms.unshift({
-    id: smsId,
-    to: r.applicant,
-    tpl: '登记受理通知',
-    content: `您的遗嘱登记已受理，证明编号 ${r.certNo}`,
-    status: '成功',
-    at: now(),
-  })
+function patchLocal(id, patch) {
+  const idx = store.registrations.findIndex(x => x.id === id)
+  if (idx >= 0) Object.assign(store.registrations[idx], patch)
+  if (detail.value?.id === id) Object.assign(detail.value, patch)
   persist()
-  pushAudit(store.adminUser.name, `审核通过 ${r.id} → 已受理，证明 ${r.certNo}`)
-  toast('已通过并生成证明编号，短信已发送')
 }
 
-function supplement(r) {
-  r.status = '退回补充'
-  const smsId = (store.sms[0]?.id || 0) + 1
-  store.sms.unshift({
-    id: smsId,
-    to: r.applicant,
-    tpl: '补件通知',
-    content: '请补充手持证件清晰照片后重新提交',
-    status: '成功',
-    at: now(),
-  })
-  persist()
-  pushAudit(store.adminUser.name, `退回补充 ${r.id}`)
-  toast('已退回补充并短信通知')
+async function reload() {
+  loading.value = true
+  try {
+    const list = await fetchRegistrations()
+    applyRegistrations(list)
+    offline.value = false
+  } catch (err) {
+    offline.value = true
+    if (!(err instanceof ApiError)) console.warn(err)
+  } finally {
+    loading.value = false
+  }
 }
 
-function reject(r) {
-  r.status = '驳回终止'
-  persist()
-  pushAudit(store.adminUser.name, `驳回终止 ${r.id}`)
-  toast('已驳回终止')
+async function approve(r) {
+  busyId.value = r.id
+  try {
+    const row = await approveRegistration(r.id)
+    patchLocal(r.id, row)
+    toast('已通过并生成证明编号，短信已发送')
+    await reload()
+  } catch {
+    // 本地回退
+    r.status = '已受理'
+    r.certNo = r.certNo || `QD-WILL-${now().replace(/\D/g, '').slice(0, 8)}-${r.id.slice(-3)}`
+    r.hash = r.hash || ('h' + Math.random().toString(16).slice(2, 6) + '…' + Math.random().toString(16).slice(2, 6))
+    store.sms.unshift({
+      id: (store.sms[0]?.id || 0) + 1,
+      to: r.applicant,
+      tpl: '登记受理通知',
+      content: `您的遗嘱登记已受理，证明编号 ${r.certNo}`,
+      status: '成功',
+      at: now(),
+    })
+    persist()
+    pushAudit(store.adminUser.name, `审核通过 ${r.id} → 已受理，证明 ${r.certNo}`)
+    toast('后端不可用：已在本地通过')
+  } finally {
+    busyId.value = ''
+  }
 }
+
+async function supplement(r) {
+  busyId.value = r.id
+  try {
+    const row = await supplementRegistration(r.id)
+    patchLocal(r.id, row)
+    toast('已退回补充并短信通知')
+    await reload()
+  } catch {
+    r.status = '退回补充'
+    store.sms.unshift({
+      id: (store.sms[0]?.id || 0) + 1,
+      to: r.applicant,
+      tpl: '补件通知',
+      content: '请补充手持证件清晰照片后重新提交',
+      status: '成功',
+      at: now(),
+    })
+    persist()
+    pushAudit(store.adminUser.name, `退回补充 ${r.id}`)
+    toast('后端不可用：已在本地退回补充')
+  } finally {
+    busyId.value = ''
+  }
+}
+
+async function reject(r) {
+  busyId.value = r.id
+  try {
+    const row = await rejectRegistration(r.id)
+    patchLocal(r.id, row)
+    toast('已驳回终止')
+    await reload()
+  } catch {
+    r.status = '驳回终止'
+    persist()
+    pushAudit(store.adminUser.name, `驳回终止 ${r.id}`)
+    toast('后端不可用：已在本地驳回')
+  } finally {
+    busyId.value = ''
+  }
+}
+
+onMounted(reload)
 </script>
 
 <style scoped>
 .page { display: grid; gap: 16px; }
+.banner {
+  background: #eaf3ff;
+  color: #1e5a9a;
+  border: 1px solid rgba(47,110,196,.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.banner.warn {
+  background: #fff7e8;
+  color: #9a6b16;
+  border-color: rgba(180,130,40,.25);
+}
 .panel {
   background: #fff;
   border-radius: 12px;

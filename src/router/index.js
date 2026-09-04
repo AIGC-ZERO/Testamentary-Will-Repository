@@ -1,4 +1,5 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { getToken } from '../api/http'
 
 const routes = [
   { path: '/', name: 'portal', component: () => import('../views/Portal.vue') },
@@ -31,8 +32,15 @@ const routes = [
     ],
   },
   {
+    path: '/admin/login',
+    name: 'admin-login',
+    component: () => import('../views/admin/AdminLogin.vue'),
+    meta: { public: true },
+  },
+  {
     path: '/admin',
     component: () => import('../views/admin/AdminShell.vue'),
+    meta: { requiresAdmin: true },
     children: [
       { path: '', name: 'admin-dash', component: () => import('../views/admin/Dashboard.vue') },
       { path: 'screen', name: 'admin-screen', component: () => import('../views/admin/BigScreen.vue') },
@@ -50,8 +58,20 @@ const routes = [
   },
 ]
 
-export default createRouter({
+const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior: () => ({ top: 0 }),
 })
+
+router.beforeEach((to) => {
+  if (to.meta.public) return true
+  if (to.matched.some((r) => r.meta.requiresAdmin)) {
+    if (!getToken('admin')) {
+      return { path: '/admin/login', query: { redirect: to.fullPath } }
+    }
+  }
+  return true
+})
+
+export default router

@@ -23,7 +23,7 @@
           <button class="btn btn-primary">进入用户端</button>
         </article>
 
-        <article class="card paper-card" @click="$router.push('/admin')">
+        <article class="card paper-card" @click="$router.push('/admin/login')">
           <div class="kicker">管理端 WEB</div>
           <h2>后台审核与作业</h2>
           <p>登记审核、见证排期、业务员工作台、保管巡检、纠纷流转、加盟审核与运营统计。</p>

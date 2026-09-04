@@ -1,0 +1,280 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 平台用户（H5 申请人 / 加盟人 / 合作伙伴等）
+model User {
+  id           String   @id @default(cuid())
+  mobile       String   @unique
+  passwordHash String?  @map("password_hash")
+  name         String?
+  gender       String?  // 0男 1女
+  idNo         String?  @map("id_no")
+  marriage     String?
+  address      String?
+  hometown     String?
+  registerAddr String?  @map("register_addr")
+  realNamed    Boolean  @default(false) @map("real_named")
+  face         Boolean  @default(false)
+  fingerprint  Boolean  @default(false)
+  idProof      Boolean  @default(false) @map("id_proof")
+  identityType String   @default("0") @map("identity_type") // 0用户 1加盟人 2管理员 3合作伙伴
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  registrations Registration[]
+  witnessings   Witnessing[]
+  businesses    BusinessOrder[]
+  disputes      Dispute[]
+  orders        Order[]
+  agreements    Agreement[]
+  providers     Provider[]
+
+  @@map("users")
+}
+
+/// 后台账号
+model AdminUser {
+  id           String    @id @default(cuid())
+  account      String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         String // 审核员 业务员 管理员 客服 管理人
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@map("admin_users")
+}
+
+/// 遗嘱登记（形式审查存证）
+model Registration {
+  id          String   @id // RG...
+  userId      String?  @map("user_id")
+  applicant   String
+  type        String // 自书遗嘱 / 打印遗嘱 / 录音遗嘱 / 代书遗嘱
+  status      String // 已提交 审核中 退回补充 已受理 驳回终止
+  certNo      String?  @map("cert_no")
+  contentHash String?  @map("content_hash")
+  willDate    String?  @map("will_date")
+  heirs       String?
+  summary     String?
+  materials   Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([applicant])
+  @@map("registrations")
+}
+
+/// 见证案件（仪式链路）
+model Witnessing {
+  id           String   @id // WS...
+  userId       String?  @map("user_id")
+  applicant    String
+  services     String[] // 见证 执行 监管 管理 保管
+  status       String // 待审核 待排期 已完成 已驳回
+  fee          Decimal  @default(0) @db.Decimal(12, 2)
+  paid         Boolean  @default(false)
+  agent        String?
+  scheduleAt   String?  @map("schedule_at")
+  ceremonyHash String?  @map("ceremony_hash")
+  witnessName  String?  @map("witness_name")
+  executor     String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@map("witnessings")
+}
+
+/// H5 在线业务单（六宫格业务入口）
+model BusinessOrder {
+  id             String   @id @default(cuid())
+  bizId          BigInt?  @unique @map("biz_id")
+  orderCode      String   @unique @map("order_code")
+  userId         String?  @map("user_id")
+  businessCode   String   @map("business_code") // 0-5
+  businessModel  String   @default("0") @map("business_model") // 0平台 1自选
+  businessStatus String   @default("00") @map("business_status") // 00待审 01办理中 02完成 10驳回 11作废
+  applicantName  String?  @map("applicant_name")
+  lawName        String?  @map("law_name")
+  phoneNumber    String?  @map("phone_number")
+  companyName    String?  @map("company_name")
+  partnerCode    String?  @map("partner_code")
+  paidFees       String?  @map("paid_fees")
+  paidFeesTime   String?  @map("paid_fees_time")
+  note           String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([businessCode])
+  @@index([businessStatus])
+  @@map("business_orders")
+}
+
+/// 纠纷案件
+model Dispute {
+  id         String   @id // DP...
+  userId     String?  @map("user_id")
+  title      String
+  applicant  String
+  owner      String?
+  stage      String // 调解中 取证中 诉讼中 已结案
+  refId      String?  @map("ref_id")
+  description String? @map("description")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([stage])
+  @@map("disputes")
+}
+
+/// 保管台账
+model CustodyRecord {
+  id        String   @id @default(cuid())
+  willId    String   @unique @map("will_id")
+  holder    String
+  since     String
+  lastCheck String?  @map("last_check")
+  ok        Boolean  @default(true)
+  location  String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("custody_records")
+}
+
+/// 加盟网点
+model Franchise {
+  id        String   @id // FR...
+  name      String
+  region    String?
+  contact   String?
+  status    String // 待审核 已入库 已驳回
+  note      String?
+  type      String? // 0个人 1法人 2其他
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  employees FranchiseEmployee[]
+
+  @@index([status])
+  @@map("franchises")
+}
+
+model FranchiseEmployee {
+  id               String   @id @default(cuid())
+  franchiseId      String   @map("franchise_id")
+  name             String
+  gender           String?
+  phoneNumber      String?  @map("phone_number")
+  registrationTime String?  @map("registration_time")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  franchise Franchise @relation(fields: [franchiseId], references: [id], onDelete: Cascade)
+
+  @@map("franchise_employees")
+}
+
+/// 订单
+model Order {
+  id        String   @id // ORD...
+  userId    String?  @map("user_id")
+  title     String
+  amount    Decimal  @db.Decimal(12, 2)
+  status    String // 待支付 已支付
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("orders")
+}
+
+/// 协议签署记录
+model Agreement {
+  id        String   @id // AG...
+  userId    String?  @map("user_id")
+  type      String // businessCode
+  title     String
+  providers Json?
+  matters   String[]
+  fee       String?
+  status    String   @default("已提交")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("agreements")
+}
+
+/// 用户侧服务方（见证人等）
+model Provider {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  kind      String // 个人 / 机构
+  name      String
+  phone     String?
+  org       String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("providers")
+}
+
+/// 短信发送记录
+model SmsLog {
+  id        Int      @id @default(autoincrement())
+  toName    String?  @map("to_name")
+  toMobile  String?  @map("to_mobile")
+  template  String
+  content   String
+  status    String // 成功 失败
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("sms_logs")
+}
+
+/// 审计日志（只追加）
+model AuditLog {
+  id        String   @id @default(cuid())
+  who       String
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+/// 短信验证码（开发期可内存/表双轨，表便于审计）
+model SmsCode {
+  id        String   @id @default(cuid())
+  mobile    String
+  code      String
+  purpose   String   @default("login")
+  used      Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([mobile, purpose])
+  @@map("sms_codes")
+}

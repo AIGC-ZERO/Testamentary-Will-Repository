@@ -49,6 +49,7 @@
             @click="switchRole(r)"
           >{{ r }}</button>
           <span class="who">{{ store.adminUser.name }}</span>
+          <button class="btn btn-sm btn-ghost" type="button" @click="logout">退出</button>
         </div>
       </header>
       <div class="content">
@@ -60,11 +61,13 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import SealLogo from '../../components/SealLogo.vue'
 import { store, persist, toast } from '../../store'
+import { setToken } from '../../api/http'
 
 const route = useRoute()
+const router = useRouter()
 const roles = ['审核员', '业务员', '管理员']
 const isScreen = computed(() => route.name === 'admin-screen' || route.path === '/admin/screen')
 
@@ -114,6 +117,12 @@ function switchRole(r) {
   store.adminUser.name = r === '审核员' ? '李审核' : r === '业务员' ? '周业务' : '王管理'
   persist()
   toast(`已切换为${r}`)
+}
+
+function logout() {
+  setToken('admin', '')
+  toast('已退出后台')
+  router.push('/admin/login')
 }
 </script>
 

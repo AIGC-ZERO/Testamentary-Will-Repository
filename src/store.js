@@ -140,6 +140,44 @@ export function pushAudit(who, action) {
   persist()
 }
 
+/** 用后端列表覆盖本地 store（联调成功后） */
+export function applyRegistrations(list) {
+  if (!Array.isArray(list)) return
+  store.registrations.splice(0, store.registrations.length, ...list)
+  persist()
+}
+
+export function applyBusinesses(list) {
+  if (!Array.isArray(list)) return
+  store.businesses.splice(0, store.businesses.length, ...list)
+  persist()
+}
+
+export function applyAudits(list) {
+  if (!Array.isArray(list)) return
+  store.audits.splice(0, store.audits.length, ...list)
+  persist()
+}
+
+export function applyUserProfile(user) {
+  if (!user || typeof user !== 'object') return
+  Object.assign(store.user, {
+    name: user.name || store.user.name,
+    mobile: user.mobile || store.user.mobile,
+    gender: user.gender ?? store.user.gender,
+    marriage: user.marriage ?? store.user.marriage,
+    address: user.address ?? store.user.address,
+    hometown: user.hometown ?? store.user.hometown,
+    realNamed: user.realNamed ?? store.user.realNamed,
+    face: user.face ?? store.user.face,
+    fingerprint: user.fingerprint ?? store.user.fingerprint,
+    idProof: user.idProof ?? store.user.idProof,
+    registerAt: user.registerAt || store.user.registerAt,
+  })
+  delete store.user.password
+  persist()
+}
+
 /** 实站 businessCode：0见证 1执行 2监管 3管理 4纠纷 5保管 */
 export const BUSINESS_MAP = {
   '0': { name: '遗嘱见证', role: '见证', icon: '📜', agreementPath: '/h5/witness-agreement' },

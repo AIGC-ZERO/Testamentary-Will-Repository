@@ -113,6 +113,8 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { store, persist, toast, now } from '../../store'
+import { registerUser, sendSms } from '../../api/auth'
+import { ApiError } from '../../api/http'
 
 const router = useRouter()
 const form = ref({
@@ -134,15 +136,21 @@ const showCodeDialog = ref(false)
 const sending = ref(false)
 const sendLabel = ref('获取验证码')
 const count = ref(60)
+const submitting = ref(false)
 
-const canSubmit = computed(() => verified.value && form.value.idNumber)
+const canSubmit = computed(() => verified.value && form.value.idNumber && form.value.password)
 
-function sendCode() {
+async function sendCode() {
   if (!form.value.phoneNumber) return toast('请输入手机号')
   if (!/^1[3-9]\d{9}$/.test(form.value.phoneNumber)) return toast('请输入正确的手机号')
   sending.value = true
   count.value = 60
-  toast('验证码已发送')
+  try {
+    await sendSms(form.value.phoneNumber, 'register')
+    toast('验证码已发送')
+  } catch (err) {
+    toast(err instanceof ApiError ? `${err.message}（可试 888888）` : '验证码发送失败，可试 888888')
+  }
   showCodeDialog.value = true
   const t = setInterval(() => {
     count.value--
@@ -168,25 +176,44 @@ function closeCodeDialog() {
   smsCode.value = ''
 }
 
-function submit() {
+async function submit() {
   if (!canSubmit.value) return
-  store.user = {
-    ...store.user,
-    name: form.value.name || '新用户',
-    mobile: form.value.phoneNumber,
-    password: form.value.password,
-    gender: form.value.gender,
-    idNo: form.value.idNumber,
-    marriage: form.value.isMarried,
-    address: form.value.address,
-    hometown: form.value.domicile,
-    registerAddr: form.value.registrationAddress,
-    registerAt: now(),
-    idProof: !!form.value.idCardProof,
+  submitting.value = true
+  try {
+    await registerUser({
+      mobile: form.value.phoneNumber,
+      password: form.value.password,
+      code: smsCode.value || '888888',
+      name: form.value.name || '新用户',
+      gender: form.value.gender,
+      idNo: form.value.idNumber,
+      marriage: form.value.isMarried,
+      address: form.value.address,
+      hometown: form.value.domicile,
+    })
+    toast('注册成功，请登录')
+    router.push('/h5/login')
+  } catch (err) {
+    store.user = {
+      ...store.user,
+      name: form.value.name || '新用户',
+      mobile: form.value.phoneNumber,
+      gender: form.value.gender,
+      idNo: form.value.idNumber,
+      marriage: form.value.isMarried,
+      address: form.value.address,
+      hometown: form.value.domicile,
+      registerAddr: form.value.registrationAddress,
+      registerAt: now(),
+      idProof: !!form.value.idCardProof,
+    }
+    delete store.user.password
+    store.loggedIn = false
+    persist()
+    toast(err instanceof ApiError ? `${err.message}，已保存本地资料` : '已保存本地资料')
+    router.push('/h5/login')
+  } finally {
+    submitting.value = false
   }
-  store.loggedIn = false
-  persist()
-  toast('注册成功')
-  router.push('/h5/login')
 }
 </script>

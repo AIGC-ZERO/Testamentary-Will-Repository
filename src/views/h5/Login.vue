@@ -46,7 +46,9 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { store, persist, toast } from '../../store'
+import { store, persist, toast, applyUserProfile } from '../../store'
+import { loginUser, sendSms } from '../../api/auth'
+import { ApiError } from '../../api/http'
 
 const router = useRouter()
 const tab = ref('pwd')
@@ -56,20 +58,27 @@ const code = ref('')
 const role = ref('0')
 const counting = ref(false)
 const count = ref(60)
+const loading = ref(false)
 
-function sendCode() {
+async function sendCode() {
   if (counting.value) return
   if (!/^1\d{10}$/.test(mobile.value)) return toast('请输入正确手机号')
+  try {
+    await sendSms(mobile.value, 'login')
+    toast('验证码已发送')
+  } catch (err) {
+    // 离线兜底：仍允许倒计时，提示使用开发码
+    toast(err instanceof ApiError ? `${err.message}（可试 888888）` : '验证码发送失败，可试 888888')
+  }
   counting.value = true
   count.value = 60
-  toast('验证码已发送')
   const t = setInterval(() => {
     count.value--
     if (count.value <= 0) { clearInterval(t); counting.value = false }
   }, 1000)
 }
 
-function login() {
+async function login() {
   if (!/^1\d{10}$/.test(mobile.value)) {
     return toast('请输入正确手机号')
   }
@@ -79,18 +88,49 @@ function login() {
   if (tab.value === 'sms' && !/^\d{4,6}$/.test(code.value)) {
     return toast('请输入验证码')
   }
-  if (role.value === '2') {
-    toast('正在跳转管理后台')
-    return router.push('/admin')
+
+  loading.value = true
+  try {
+    const data = await loginUser({
+      mobile: mobile.value,
+      password: tab.value === 'pwd' ? password.value : undefined,
+      code: tab.value === 'sms' ? code.value : undefined,
+      role: role.value,
+    })
+    if (data.kind === 'admin' || role.value === '2') {
+      toast('正在跳转管理后台')
+      password.value = ''
+      code.value = ''
+      return router.push('/admin')
+    }
+    store.loggedIn = true
+    applyUserProfile(data.user || { mobile: mobile.value })
+    if (!store.user.name) store.user.name = '用户' + mobile.value.slice(-4)
+    persist()
+    password.value = ''
+    code.value = ''
+    toast('登录成功')
+    router.push('/h5')
+  } catch (err) {
+    // 离线回退
+    if (role.value === '2') {
+      toast('后端不可用：请从门户进入后台登录页')
+      return router.push('/admin/login')
+    }
+    store.loggedIn = true
+    store.user.mobile = mobile.value
+    delete store.user.password
+    if (!store.user.name || store.user.name === '注册用户') {
+      store.user.name = '用户' + mobile.value.slice(-4)
+    }
+    persist()
+    password.value = ''
+    code.value = ''
+    toast(err instanceof ApiError ? `${err.message}，已本地登录` : '已本地登录')
+    router.push('/h5')
+  } finally {
+    loading.value = false
   }
-  store.loggedIn = true
-  store.user.mobile = mobile.value
-  if (!store.user.name || store.user.name === '注册用户') {
-    store.user.name = '用户' + mobile.value.slice(-4)
-  }
-  persist()
-  toast('登录成功')
-  router.push('/h5')
 }
 </script>
 

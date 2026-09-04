@@ -128,9 +128,10 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { store, BUSINESS_MAP, ROLE_LABELS, toast, persist } from '../../store'
+import { store, BUSINESS_MAP, ROLE_LABELS, toast, persist, applyBusinesses } from '../../store'
+import { fetchBusinesses, cancelBusiness } from '../../api/admin'
 
 const route = useRoute()
 const router = useRouter()
@@ -155,12 +156,12 @@ const list = computed(() => {
   if (tab.value === 'doing') {
     items = items.filter((b) => b.businessStatus === '00')
   } else if (tab.value === 'done') {
-    items = items.filter((b) => b.businessStatus === '01')
+    items = items.filter((b) => b.businessStatus === '01' || b.businessStatus === '02')
   }
   return items
 })
 
-const STATUS = { '00': '待审批', '01': '审批通过', '10': '驳回', '11': '作废' }
+const STATUS = { '00': '待审批', '01': '审批通过', '02': '已完成', '10': '驳回', '11': '作废' }
 const BIZ = { '0': '见证', '1': '执行', '2': '监管', '3': '管理', '4': '纠纷', '5': '保管' }
 const MODEL = { '0': '平台业务人', '1': '自选业务人' }
 
@@ -185,50 +186,68 @@ function ribbonClass(c) {
 function statusClass(item) {
   const s = item.businessStatus
   if (s === '00') return 'indicator-pending'
-  if (s === '01') return 'indicator-approved'
-  if (s === '10') return 'indicator-rejected'
-  if (s === '11') return 'indicator-rejected'
+  if (s === '01' || s === '02') return 'indicator-approved'
+  if (s === '10' || s === '11') return 'indicator-rejected'
   return ''
 }
 
 function formatPhone(p) {
-  if (!p) return '未提供'
-  const s = p.replace(/\D/g, '')
+  if (!p) return '未填写'
+  const s = String(p)
   if (s.length === 11) return `${s.slice(0, 3)} ${s.slice(3, 7)} ${s.slice(7)}`
-  return p
+  return s
 }
 
 function callPhone(p) {
-  if (!p) return toast('电话号码无效')
-  window.location.href = `tel:${p.replace(/\D/g, '')}`
+  if (!p) return toast('暂无电话')
+  window.location.href = `tel:${p}`
 }
 
-function copyPhone(p) {
+async function copyPhone(p) {
   if (!p) return
-  navigator.clipboard?.writeText(p.replace(/\D/g, ''))
-  toast('号码已复制')
+  try {
+    await navigator.clipboard.writeText(String(p))
+    toast('已复制电话')
+  } catch {
+    toast('复制失败')
+  }
 }
 
 function viewDetail(item) {
-  toast(`查看业务详情：${item.orderCode}`)
-}
-
-function cancelBiz(item) {
-  if (!confirm(`确定要取消业务 ${item.orderCode} 吗？`)) return
-  item.businessStatus = '11'
-  persist()
-  toast('取消申请已提交')
+  toast(`${item.orderCode} · ${statusLabel(item)}`)
 }
 
 function editBiz(item) {
-  router.push({
-    path: `/h5/business-build/${item.businessCode}`,
-    query: { mode: '1', businessData: JSON.stringify(item) },
-  })
+  router.push(`/h5/business-build/${item.businessCode}?mode=1&order=${item.orderCode}`)
+}
+
+async function cancelBiz(item) {
+  try {
+    await cancelBusiness(item.orderCode)
+    item.businessStatus = '11'
+    persist()
+    toast('已取消')
+    await refresh()
+  } catch {
+    item.businessStatus = '11'
+    persist()
+    toast('已本地取消')
+  }
 }
 
 function createNew() {
-  const target = code.value === 'all' ? '0' : code.value
-  router.push(`/h5/notification/${target}`)
+  const c = code.value === 'all' ? '0' : code.value
+  router.push(`/h5/notification/${c}`)
 }
+
+async function refresh() {
+  try {
+    const data = await fetchBusinesses({ code: code.value === 'all' ? undefined : code.value })
+    applyBusinesses(data)
+  } catch {
+    /* 保留本地 */
+  }
+}
+
+onMounted(refresh)
 </script>

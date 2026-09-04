@@ -13,6 +13,12 @@ dist-ssr
 *.local
 .run/
 ref-site/
+.env
+.env.*
+!.env.example
+backend/.env
+backend/dist/
+docs/images/
 
 # Editor directories and files
 .vscode/*

@@ -1,5 +1,8 @@
 <template>
   <div class="dash">
+    <div v-if="loading" class="banner">正在同步服务端数据…</div>
+    <div v-else-if="offline" class="banner warn">后端暂不可用，已显示本地缓存数据</div>
+
     <div class="cards">
       <div class="card" v-for="c in cards" :key="c.label" @click="c.to && $router.push(c.to)">
         <div class="num">{{ c.value }}</div>
@@ -54,24 +57,51 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { store, BUSINESS_MAP } from '../../store'
+import { computed, onMounted, ref } from 'vue'
+import { store, BUSINESS_MAP, applyAudits, persist } from '../../store'
+import { fetchDashboard, fetchRegistrations } from '../../api/admin'
+import { ApiError } from '../../api/http'
 
-const cards = computed(() => [
-  { label: '登记总数', value: store.registrations.length, to: '/admin/review' },
-  { label: '见证案件', value: store.witnessings.length, to: '/admin/witness' },
-  {
-    label: '待审登记',
-    value: store.registrations.filter(r => ['审核中', '已提交', '退回补充'].includes(r.status)).length,
-    to: '/admin/review',
-  },
-  { label: '待排期见证', value: store.witnessings.filter(w => w.status === '待排期').length, to: '/admin/workbench' },
-  { label: '保管台账', value: store.custody.length, to: '/admin/custody' },
-  { label: '纠纷案件', value: store.disputes.filter(d => d.stage !== '已结案').length, to: '/admin/dispute' },
-])
+const loading = ref(false)
+const offline = ref(false)
+const remoteCards = ref(null)
+const remoteBiz = ref(null)
+
+const cards = computed(() => {
+  if (remoteCards.value) {
+    const c = remoteCards.value
+    return [
+      { label: '登记总数', value: c.registrations, to: '/admin/review' },
+      { label: '见证案件', value: c.witnessings, to: '/admin/witness' },
+      { label: '待审登记', value: c.pendingRegs, to: '/admin/review' },
+      { label: '待排期见证', value: c.pendingWitness, to: '/admin/workbench' },
+      { label: '保管台账', value: c.custody, to: '/admin/custody' },
+      { label: '纠纷案件', value: c.disputes, to: '/admin/dispute' },
+    ]
+  }
+  return [
+    { label: '登记总数', value: store.registrations.length, to: '/admin/review' },
+    { label: '见证案件', value: store.witnessings.length, to: '/admin/witness' },
+    {
+      label: '待审登记',
+      value: store.registrations.filter(r => ['审核中', '已提交', '退回补充'].includes(r.status)).length,
+      to: '/admin/review',
+    },
+    { label: '待排期见证', value: store.witnessings.filter(w => w.status === '待排期').length, to: '/admin/workbench' },
+    { label: '保管台账', value: store.custody.length, to: '/admin/custody' },
+    { label: '纠纷案件', value: store.disputes.filter(d => d.stage !== '已结案').length, to: '/admin/dispute' },
+  ]
+})
 
 const bizStats = computed(() => {
   const codes = ['0', '1', '2', '3', '4', '5']
+  if (remoteBiz.value) {
+    const map = Object.fromEntries(remoteBiz.value.map(b => [b.code, b.value]))
+    return codes.map(code => ({
+      label: BUSINESS_MAP[code]?.name || code,
+      value: map[code] || 0,
+    }))
+  }
   return codes.map(code => ({
     label: BUSINESS_MAP[code]?.name || code,
     value: store.businesses.filter(b => b.businessCode === code).length,
@@ -122,10 +152,46 @@ const todos = computed(() => {
   })
   return list.slice(0, 6)
 })
+
+onMounted(async () => {
+  loading.value = true
+  offline.value = false
+  try {
+    const [dash, regs] = await Promise.all([
+      fetchDashboard(),
+      fetchRegistrations(),
+    ])
+    remoteCards.value = dash.cards
+    remoteBiz.value = dash.bizStats || []
+    if (Array.isArray(dash.recentAudits)) applyAudits(dash.recentAudits)
+    if (Array.isArray(regs)) {
+      store.registrations.splice(0, store.registrations.length, ...regs)
+      persist()
+    }
+  } catch (err) {
+    offline.value = true
+    if (!(err instanceof ApiError)) console.warn(err)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>
 .dash { display: grid; gap: 18px; }
+.banner {
+  background: #eaf3ff;
+  color: #1e5a9a;
+  border: 1px solid rgba(47,110,196,.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+.banner.warn {
+  background: #fff7e8;
+  color: #9a6b16;
+  border-color: rgba(180,130,40,.25);
+}
 .cards {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
