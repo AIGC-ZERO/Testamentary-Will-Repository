@@ -4,8 +4,8 @@
     <div v-else-if="offline" class="banner warn">后端暂不可用，已显示本地缓存数据</div>
 
     <div class="cards">
-      <div class="card" v-for="c in cards" :key="c.label" @click="c.to && $router.push(c.to)">
-        <div class="num">{{ c.value }}</div>
+      <div class="card" v-for="(c, i) in cards" :key="c.label" @click="c.to && $router.push(c.to)">
+        <div class="num">{{ display[i] ?? c.value }}</div>
         <div class="label">{{ c.label }}</div>
       </div>
     </div>
@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { store, BUSINESS_MAP, applyAudits, persist } from '../../store'
 import { fetchDashboard, fetchRegistrations } from '../../api/admin'
 import { ApiError } from '../../api/http'
@@ -92,6 +92,25 @@ const cards = computed(() => {
     { label: '纠纷案件', value: store.disputes.filter(d => d.stage !== '已结案').length, to: '/admin/dispute' },
   ]
 })
+
+/* KPI 数字滚动动效 */
+const display = ref([])
+const rafs = []
+function tween(idx, from, to) {
+  cancelAnimationFrame(rafs[idx])
+  const start = performance.now()
+  const dur = 680
+  const step = (t) => {
+    const p = Math.min((t - start) / dur, 1)
+    const e = 1 - Math.pow(1 - p, 3)
+    display.value[idx] = Math.round(from + (to - from) * e)
+    if (p < 1) rafs[idx] = requestAnimationFrame(step)
+  }
+  rafs[idx] = requestAnimationFrame(step)
+}
+watch(cards, (list) => {
+  list.forEach((c, i) => tween(i, Number(display.value[i]) || 0, Number(c.value) || 0))
+}, { immediate: true })
 
 const bizStats = computed(() => {
   const codes = ['0', '1', '2', '3', '4', '5']

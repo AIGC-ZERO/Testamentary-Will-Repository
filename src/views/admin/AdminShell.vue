@@ -2,7 +2,7 @@
   <div v-if="isScreen" class="screen-host">
     <router-view />
   </div>
-  <div v-else class="admin-shell">
+  <div v-else class="admin-shell" :class="`theme-${adminTheme}`">
     <aside class="side">
       <div class="brand">
         <SealLogo :size="36" :font="11" />
@@ -40,6 +40,38 @@
           <span class="hint">首页 / {{ pageTitle }}</span>
         </div>
         <div class="roles">
+          <div class="theme-switch" role="group" aria-label="界面主题">
+            <button
+              type="button"
+              class="ts-btn"
+              :class="{ on: adminTheme === 'light' }"
+              title="经典浅色界面"
+              @click="setAdminTheme('light')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              <span>经典</span>
+            </button>
+            <button
+              type="button"
+              class="ts-btn"
+              :class="{ on: adminTheme === 'tech' }"
+              title="深蓝科技界面"
+              @click="setAdminTheme('tech')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>
+              <span>深蓝</span>
+            </button>
+            <button
+              type="button"
+              class="ts-btn"
+              :class="{ on: adminTheme === 'aurora' }"
+              title="极光渐变界面"
+              @click="setAdminTheme('aurora')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l1.9 5.7 5.7 1.9-5.7 1.9L12 18.2l-1.9-5.7-5.7-1.9 5.7-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>
+              <span>极光</span>
+            </button>
+          </div>
           <span class="hint">当前角色</span>
           <button
             v-for="r in roles"
@@ -53,7 +85,11 @@
         </div>
       </header>
       <div class="content">
-        <router-view />
+        <router-view v-slot="{ Component }">
+          <transition name="ad-page" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
       </div>
     </div>
   </div>
@@ -65,6 +101,7 @@ import { useRoute, useRouter } from 'vue-router'
 import SealLogo from '../../components/SealLogo.vue'
 import { store, persist, toast } from '../../store'
 import { setToken } from '../../api/http'
+import { adminTheme, setAdminTheme } from '../../admin-theme'
 
 const route = useRoute()
 const router = useRouter()
@@ -292,6 +329,20 @@ function logout() {
 }
 .content {
   padding: 16px 20px 24px;
+}
+
+/* 页面切换过渡 */
+.ad-page-enter-active,
+.ad-page-leave-active {
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+.ad-page-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.ad-page-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 @media (max-width: 900px) {

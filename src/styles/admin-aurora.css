@@ -1,0 +1,448 @@
+/* ==========================================================================
+   岛城遗嘱库 · 后台管理 极光主题 (aurora · 浅色版)
+   灵感: Aceternity UI / React Bits / Aura UI
+   浅云白底 + 极光渐变光晕 + 流光描边 + 珠光按钮 + 流光数字
+   作用域: .admin-shell.theme-aurora
+   ========================================================================== */
+
+:root {
+  --aa-bg: #f7f5ff;
+  --aa-panel: rgba(255, 255, 255, 0.72);
+  --aa-panel-solid: #ffffff;
+  --aa-line: rgba(124, 93, 220, 0.18);
+  --aa-line-strong: rgba(124, 93, 220, 0.42);
+  --aa-text: #2d2946;
+  --aa-muted: #6f6892;
+  --aa-faint: #a39cc4;
+  --aa-violet: #7c3aed;
+  --aa-fuchsia: #c026d3;
+  --aa-cyan: #0891b2;
+  --aa-glow: 0 10px 32px rgba(124, 58, 237, 0.14);
+}
+
+@keyframes aa-drift {
+  0%   { transform: translate3d(-6%, -4%, 0) scale(1); }
+  50%  { transform: translate3d(5%, 6%, 0) scale(1.12); }
+  100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+}
+@keyframes aa-drift-alt {
+  0%   { transform: translate3d(4%, 5%, 0) scale(1.05); }
+  50%  { transform: translate3d(-5%, -5%, 0) scale(0.96); }
+  100% { transform: translate3d(4%, 5%, 0) scale(1.05); }
+}
+@keyframes aa-shine {
+  to { background-position: 200% center; }
+}
+@keyframes aa-sheen {
+  0%   { left: -70%; }
+  55%  { left: 130%; }
+  100% { left: 130%; }
+}
+@keyframes aa-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes aa-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(192, 38, 211, 0.28); }
+  50%      { box-shadow: 0 0 0 6px rgba(192, 38, 211, 0); }
+}
+
+/* ---------- 背景: 浅云白 + 流动极光 ---------- */
+#app .admin-shell.theme-aurora {
+  background:
+    radial-gradient(720px 360px at 10% -8%, rgba(139, 92, 246, 0.24), transparent 62%),
+    radial-gradient(780px 400px at 92% 6%, rgba(217, 70, 239, 0.19), transparent 60%),
+    radial-gradient(700px 440px at 50% 114%, rgba(34, 211, 238, 0.18), transparent 58%),
+    var(--aa-bg);
+  color: var(--aa-text);
+}
+.admin-shell.theme-aurora .main {
+  position: relative;
+  background: transparent;
+  overflow: hidden;
+}
+.admin-shell.theme-aurora .main::before,
+.admin-shell.theme-aurora .main::after {
+  content: '';
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  min-width: 640px;
+  min-height: 640px;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+}
+.admin-shell.theme-aurora .main::before {
+  top: -24%;
+  right: -12%;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.30), rgba(217, 70, 239, 0.16) 45%, transparent 68%);
+  animation: aa-drift 26s ease-in-out infinite;
+}
+.admin-shell.theme-aurora .main::after {
+  bottom: -30%;
+  left: -14%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.26), rgba(96, 165, 250, 0.13) 45%, transparent 68%);
+  animation: aa-drift-alt 32s ease-in-out infinite;
+}
+.admin-shell.theme-aurora .top,
+.admin-shell.theme-aurora .content { position: relative; z-index: 1; }
+
+/* ---------- 侧栏 ---------- */
+.admin-shell.theme-aurora .side {
+  background: rgba(255, 255, 255, 0.66);
+  border-right: 1px solid var(--aa-line);
+  box-shadow: 8px 0 28px rgba(124, 58, 237, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.admin-shell.theme-aurora .side .brand { border-bottom: 1px solid var(--aa-line); }
+.admin-shell.theme-aurora .side .title { color: #241f3d; }
+.admin-shell.theme-aurora .side .sub { color: var(--aa-muted); }
+.admin-shell.theme-aurora .nav-item {
+  color: var(--aa-muted);
+  border-radius: 10px;
+  margin: 1px 6px;
+  transition: all 0.24s ease;
+}
+.admin-shell.theme-aurora .nav-item:hover {
+  background: rgba(124, 58, 237, 0.08);
+  color: var(--aa-violet);
+  transform: translateX(2px);
+}
+.admin-shell.theme-aurora .nav-item:hover .nav-ico { color: var(--aa-violet); }
+.admin-shell.theme-aurora .nav-item.active {
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #7c3aed, #c026d3);
+  box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+}
+.admin-shell.theme-aurora .nav-item.active .nav-ico { color: #fff; }
+.admin-shell.theme-aurora .nav-ico { color: var(--aa-faint); transition: all 0.24s ease; }
+.admin-shell.theme-aurora .back { color: var(--aa-muted); border-top: 1px solid var(--aa-line); }
+.admin-shell.theme-aurora .back:hover { color: var(--aa-violet); background: rgba(124, 58, 237, 0.08); }
+
+/* ---------- 顶栏 ---------- */
+.admin-shell.theme-aurora .top {
+  background: rgba(255, 255, 255, 0.6);
+  border-bottom: 1px solid var(--aa-line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.admin-shell.theme-aurora .crumb strong { color: #241f3d; }
+.admin-shell.theme-aurora .top .hint { color: var(--aa-muted); }
+.admin-shell.theme-aurora .who { color: #4a4370; }
+.admin-shell.theme-aurora .top .btn-ghost {
+  background: transparent;
+  border-color: rgba(124, 93, 220, 0.3);
+  color: var(--aa-muted);
+}
+.admin-shell.theme-aurora .top .btn-ghost:hover { color: var(--aa-violet); border-color: var(--aa-line-strong); }
+.admin-shell.theme-aurora .top .btn-primary {
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.32);
+}
+
+/* ---------- 主题切换器 (极光态) ---------- */
+.admin-shell.theme-aurora .theme-switch {
+  border-color: rgba(124, 93, 220, 0.28);
+  background: rgba(255, 255, 255, 0.6);
+}
+.admin-shell.theme-aurora .theme-switch .ts-btn { color: var(--aa-muted); }
+.admin-shell.theme-aurora .theme-switch .ts-btn.on {
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+/* ---------- 滚动条 ---------- */
+.admin-shell.theme-aurora ::-webkit-scrollbar { width: 9px; height: 9px; }
+.admin-shell.theme-aurora ::-webkit-scrollbar-thumb {
+  background: rgba(124, 93, 220, 0.3);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+.admin-shell.theme-aurora ::-webkit-scrollbar-thumb:hover { background-color: rgba(124, 93, 220, 0.5); }
+.admin-shell.theme-aurora ::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- 入场动效 ---------- */
+.admin-shell.theme-aurora .content > * {
+  animation: aa-rise 0.5s cubic-bezier(0.22, 0.9, 0.32, 1) both;
+}
+.admin-shell.theme-aurora .content > *:nth-child(2) { animation-delay: 0.06s; }
+.admin-shell.theme-aurora .content > *:nth-child(3) { animation-delay: 0.12s; }
+.admin-shell.theme-aurora .content > *:nth-child(4) { animation-delay: 0.18s; }
+
+/* ---------- 通用文字 ---------- */
+.admin-shell.theme-aurora .content { color: var(--aa-text); }
+.admin-shell.theme-aurora .content h1,
+.admin-shell.theme-aurora .content h2,
+.admin-shell.theme-aurora .content h3,
+.admin-shell.theme-aurora .content h4 { color: #241f3d; }
+.admin-shell.theme-aurora .content .hint,
+.admin-shell.theme-aurora .content .sub,
+.admin-shell.theme-aurora .content .empty { color: var(--aa-muted); }
+.admin-shell.theme-aurora .content strong { color: #241f3d; }
+.admin-shell.theme-aurora .content a { color: var(--aa-violet); }
+
+/* ---------- 面板 / 卡片 (白玻璃 + 流光描边) ---------- */
+.admin-shell.theme-aurora .content .panel,
+.admin-shell.theme-aurora .content .card,
+.admin-shell.theme-aurora .content .paper-card {
+  background: var(--aa-panel);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  outline: 1px solid var(--aa-line);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(80, 60, 160, 0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--aa-text);
+  transition: outline-color 0.28s ease, box-shadow 0.28s ease, transform 0.28s ease;
+  position: relative;
+  overflow: hidden;
+}
+.admin-shell.theme-aurora .content .panel:hover,
+.admin-shell.theme-aurora .content .card:hover {
+  outline-color: var(--aa-line-strong);
+  box-shadow: 0 14px 38px rgba(80, 60, 160, 0.16), var(--aa-glow);
+}
+.admin-shell.theme-aurora .content .card { cursor: pointer; }
+.admin-shell.theme-aurora .content .card:hover { transform: translateY(-3px); }
+/* 顶部极光渐变线 */
+.admin-shell.theme-aurora .content .panel::before,
+.admin-shell.theme-aurora .content .card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.65), rgba(34, 211, 238, 0.55), rgba(217, 70, 239, 0.6), transparent);
+  opacity: 0.75;
+  pointer-events: none;
+}
+/* 卡片悬浮: 斜向流光扫过 */
+.admin-shell.theme-aurora .content .card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 55%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(124, 58, 237, 0.10), transparent);
+  transform: skewX(-18deg);
+  transition: left 0.6s ease;
+  pointer-events: none;
+}
+.admin-shell.theme-aurora .content .card:hover::after { left: 130%; }
+
+/* KPI 数字: 流光渐变 */
+.admin-shell.theme-aurora .content .card .num {
+  background: linear-gradient(110deg, #7c3aed 15%, #c026d3 42%, #0891b2 68%, #7c3aed 92%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: aa-shine 3.2s linear infinite;
+}
+.admin-shell.theme-aurora .content .card .label,
+.admin-shell.theme-aurora .content .card .meta,
+.admin-shell.theme-aurora .content .card .desc { color: var(--aa-muted); }
+
+/* ---------- 提示条 ---------- */
+.admin-shell.theme-aurora .content .banner {
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.28);
+  color: #5b21b6;
+  border-radius: 10px;
+}
+.admin-shell.theme-aurora .content .banner.warn {
+  background: rgba(217, 119, 6, 0.08);
+  border-color: rgba(217, 119, 6, 0.3);
+  color: #92400e;
+}
+
+/* ---------- 按钮 ---------- */
+.admin-shell.theme-aurora .content .btn {
+  border-radius: 9px;
+  border: 1px solid rgba(124, 93, 220, 0.32);
+  background: rgba(255, 255, 255, 0.7);
+  color: #4a4370;
+  transition: all 0.22s ease;
+}
+.admin-shell.theme-aurora .content .btn:hover {
+  border-color: var(--aa-line-strong);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.18);
+  transform: translateY(-1px);
+}
+.admin-shell.theme-aurora .content .btn:active { transform: translateY(0); }
+.admin-shell.theme-aurora .content .btn:disabled { opacity: 0.45; box-shadow: none; transform: none; }
+.admin-shell.theme-aurora .content .btn-primary {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 18px rgba(124, 58, 237, 0.35);
+}
+.admin-shell.theme-aurora .content .btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -70%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: skewX(-20deg);
+  animation: aa-sheen 2.8s ease-in-out infinite;
+  pointer-events: none;
+}
+.admin-shell.theme-aurora .content .btn-primary:hover {
+  box-shadow: 0 6px 24px rgba(192, 38, 211, 0.4);
+}
+.admin-shell.theme-aurora .content .btn-ghost {
+  background: transparent;
+  border-color: rgba(124, 93, 220, 0.26);
+  color: var(--aa-muted);
+}
+.admin-shell.theme-aurora .content .btn-ghost:hover { color: var(--aa-violet); }
+
+/* ---------- 表格 ---------- */
+.admin-shell.theme-aurora .content table { color: var(--aa-text); }
+.admin-shell.theme-aurora .content th {
+  color: var(--aa-muted);
+  border-bottom: 1px solid var(--aa-line);
+  letter-spacing: 0.04em;
+}
+.admin-shell.theme-aurora .content td { border-bottom: 1px solid rgba(124, 93, 220, 0.08); }
+.admin-shell.theme-aurora .content tbody tr { transition: background 0.18s ease; }
+.admin-shell.theme-aurora .content tbody tr:hover { background: rgba(124, 58, 237, 0.06); }
+
+/* ---------- 标签 ---------- */
+.admin-shell.theme-aurora .content .tag,
+.admin-shell.theme-aurora .content .chip {
+  border-radius: 999px;
+  border: 1px solid rgba(124, 93, 220, 0.32);
+  background: rgba(124, 58, 237, 0.08);
+  color: #5b21b6;
+}
+.admin-shell.theme-aurora .content .tag-ok {
+  border-color: rgba(5, 150, 105, 0.35);
+  background: rgba(5, 150, 105, 0.08);
+  color: #047857;
+}
+.admin-shell.theme-aurora .content .tag-warn {
+  border-color: rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.08);
+  color: #b45309;
+}
+.admin-shell.theme-aurora .content .tag-danger {
+  border-color: rgba(225, 29, 72, 0.32);
+  background: rgba(225, 29, 72, 0.07);
+  color: #be123c;
+}
+.admin-shell.theme-aurora .content .tag-blue {
+  border-color: rgba(8, 145, 178, 0.35);
+  background: rgba(8, 145, 178, 0.08);
+  color: #0e7490;
+}
+
+/* ---------- 表单控件 ---------- */
+.admin-shell.theme-aurora .content input,
+.admin-shell.theme-aurora .content select,
+.admin-shell.theme-aurora .content textarea {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(124, 93, 220, 0.28);
+  color: var(--aa-text);
+  border-radius: 9px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.admin-shell.theme-aurora .content input::placeholder,
+.admin-shell.theme-aurora .content textarea::placeholder { color: var(--aa-faint); }
+.admin-shell.theme-aurora .content input:focus,
+.admin-shell.theme-aurora .content select:focus,
+.admin-shell.theme-aurora .content textarea:focus {
+  border-color: var(--aa-violet);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.14);
+}
+.admin-shell.theme-aurora .content select option { background: #fff; color: var(--aa-text); }
+
+/* ---------- 抽屉 / 弹窗 ---------- */
+.admin-shell.theme-aurora .content .drawer,
+.admin-shell.theme-aurora .content .mod { background: rgba(46, 36, 90, 0.28); backdrop-filter: blur(5px); }
+.admin-shell.theme-aurora .content .drawer-body,
+.admin-shell.theme-aurora .content .mod .dia,
+.admin-shell.theme-aurora .content .dia {
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--aa-line-strong);
+  border-radius: 16px;
+  color: var(--aa-text);
+  box-shadow: 0 26px 68px rgba(60, 40, 120, 0.28);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.admin-shell.theme-aurora .content .mod-hd { border-bottom: 1px solid var(--aa-line); color: #241f3d; }
+.admin-shell.theme-aurora .content .drawer-body header { border-bottom: 1px solid var(--aa-line); color: #241f3d; }
+.admin-shell.theme-aurora .content .drawer-body dt { color: var(--aa-muted); }
+.admin-shell.theme-aurora .content .drawer-body dd { color: var(--aa-text); }
+.admin-shell.theme-aurora .content .x { color: var(--aa-muted); background: transparent; border: 0; }
+.admin-shell.theme-aurora .content .x:hover { color: #241f3d; }
+
+/* ---------- 小元素 ---------- */
+.admin-shell.theme-aurora .content .dot {
+  display: inline-block;
+  border-radius: 50%;
+  animation: aa-pulse 2.4s ease-in-out infinite;
+}
+.admin-shell.theme-aurora .content .mini {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(124, 93, 220, 0.14);
+  color: var(--aa-muted);
+}
+.admin-shell.theme-aurora .content .mini strong { color: var(--aa-violet); }
+.admin-shell.theme-aurora .content .todo { border-bottom: 1px solid rgba(124, 93, 220, 0.08); }
+.admin-shell.theme-aurora .content .todo:hover { background: rgba(124, 58, 237, 0.05); }
+.admin-shell.theme-aurora .content .arrow { color: var(--aa-fuchsia); }
+.admin-shell.theme-aurora .content .stepper .step {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(124, 93, 220, 0.2);
+  color: var(--aa-muted);
+}
+.admin-shell.theme-aurora .content .stepper .step.active {
+  background: linear-gradient(135deg, #7c3aed, #c026d3);
+  color: #fff;
+  border-color: transparent;
+}
+.admin-shell.theme-aurora .content .stepper .step.done {
+  background: rgba(5, 150, 105, 0.08);
+  border-color: rgba(5, 150, 105, 0.35);
+  color: #047857;
+}
+.admin-shell.theme-aurora .content .upload-box {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1.5px dashed rgba(124, 93, 220, 0.4);
+  color: var(--aa-violet);
+}
+.admin-shell.theme-aurora .content .upload-box.filled {
+  border-color: var(--aa-violet);
+  background: rgba(124, 58, 237, 0.06);
+}
+.admin-shell.theme-aurora .content .track { background: rgba(124, 93, 220, 0.14); }
+.admin-shell.theme-aurora .content .fill,
+.admin-shell.theme-aurora .content .track i {
+  background: linear-gradient(90deg, #7c3aed, #c026d3, #0891b2);
+  background-size: 180% auto;
+  animation: aa-shine 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell.theme-aurora .content > *,
+  .admin-shell.theme-aurora .main::before,
+  .admin-shell.theme-aurora .main::after,
+  .admin-shell.theme-aurora .content .card .num,
+  .admin-shell.theme-aurora .content .btn-primary::after { animation: none; }
+}
