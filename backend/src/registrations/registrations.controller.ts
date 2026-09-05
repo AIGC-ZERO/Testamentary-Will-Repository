@@ -1,6 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Post, Query, Req } from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminRoles, UserOnly } from '../common/roles';
+import { assertStatusIn, REGISTRATION_RULES } from '../common/state-machine';
 import { formatDateTime, genBizId, ok, shortHash } from '../common/utils';
 
 class CreateRegistrationDto {
@@ -27,13 +29,14 @@ class CreateRegistrationDto {
 export class RegistrationsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @UserOnly()
   @Post('registrations')
-  async create(@Body() dto: CreateRegistrationDto, @Req() req: { user: { sub: string; kind: string; name?: string } }) {
+  async create(@Body() dto: CreateRegistrationDto, @Req() req: { user: { sub: string; name?: string } }) {
     const id = genBizId('RG');
     const row = await this.prisma.registration.create({
       data: {
         id,
-        userId: req.user.kind === 'user' ? req.user.sub : undefined,
+        userId: req.user.sub,
         applicant: dto.applicant,
         type: dto.type,
         status: '审核中',
@@ -56,6 +59,7 @@ export class RegistrationsController {
     return ok(row, '提交成功');
   }
 
+  @AdminRoles('审核员', '客服', '管理员')
   @Get('admin/registrations')
   async list(@Query('status') status?: string) {
     const where = status && status !== '全部'
@@ -70,14 +74,20 @@ export class RegistrationsController {
     return ok(list.map(this.mapReg));
   }
 
+  @AdminRoles('审核员', '客服', '管理员')
   @Get('admin/registrations/:id')
   async detail(@Param('id') id: string) {
     const row = await this.prisma.registration.findUnique({ where: { id } });
-    return ok(row ? this.mapReg(row) : null);
+    if (!row) throw new NotFoundException(`登记 ${id} 不存在`);
+    return ok(this.mapReg(row));
   }
 
+  @AdminRoles('审核员', '管理员')
   @Post('admin/registrations/:id/approve')
   async approve(@Param('id') id: string, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.registration.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`登记 ${id} 不存在`);
+    assertStatusIn(cur.status, REGISTRATION_RULES.approve, { label: '登记', id, action: '受理' });
     const d = new Date();
     const certNo = `QD-WILL-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}-${id.slice(-3)}`;
     const contentHash = shortHash(`${id}:${certNo}:${Date.now()}`);
@@ -99,8 +109,12 @@ export class RegistrationsController {
     return ok(this.mapReg(row), '已受理');
   }
 
+  @AdminRoles('审核员', '管理员')
   @Post('admin/registrations/:id/supplement')
   async supplement(@Param('id') id: string, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.registration.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`登记 ${id} 不存在`);
+    assertStatusIn(cur.status, REGISTRATION_RULES.supplement, { label: '登记', id, action: '退回补充' });
     const row = await this.prisma.registration.update({
       where: { id },
       data: { status: '退回补充' },
@@ -119,8 +133,12 @@ export class RegistrationsController {
     return ok(this.mapReg(row), '已退回补充');
   }
 
+  @AdminRoles('审核员', '管理员')
   @Post('admin/registrations/:id/reject')
   async reject(@Param('id') id: string, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.registration.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`登记 ${id} 不存在`);
+    assertStatusIn(cur.status, REGISTRATION_RULES.reject, { label: '登记', id, action: '驳回终止' });
     const row = await this.prisma.registration.update({
       where: { id },
       data: { status: '驳回终止' },

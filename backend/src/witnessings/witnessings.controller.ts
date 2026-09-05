@@ -1,6 +1,19 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  ConflictException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { IsArray, IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminRoles, UserOnly } from '../common/roles';
+import { assertStatusIn, WITNESS_RULES } from '../common/state-machine';
 import { formatDateTime, genBizId, ok, shortHash } from '../common/utils';
 
 class CreateWitnessDto {
@@ -32,13 +45,14 @@ class ScheduleDto {
 export class WitnessingsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @UserOnly()
   @Post('witnessings')
-  async create(@Body() dto: CreateWitnessDto, @Req() req: { user: { sub: string; kind: string; name?: string } }) {
+  async create(@Body() dto: CreateWitnessDto, @Req() req: { user: { sub: string; name?: string } }) {
     const id = genBizId('WS');
     const row = await this.prisma.witnessing.create({
       data: {
         id,
-        userId: req.user.kind === 'user' ? req.user.sub : undefined,
+        userId: req.user.sub,
         applicant: dto.applicant,
         services: dto.services,
         status: '待审核',
@@ -52,6 +66,7 @@ export class WitnessingsController {
     return ok(this.map(row), '提交成功');
   }
 
+  @AdminRoles('审核员', '业务员', '管理员')
   @Get('admin/witnessings')
   async list(@Query('status') status?: string) {
     const list = await this.prisma.witnessing.findMany({
@@ -61,8 +76,12 @@ export class WitnessingsController {
     return ok(list.map(this.map));
   }
 
+  @AdminRoles('审核员', '管理员')
   @Post('admin/witnessings/:id/approve')
   async approve(@Param('id') id: string, @Body() body: { agent?: string }, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.witnessing.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`见证 ${id} 不存在`);
+    assertStatusIn(cur.status, WITNESS_RULES.approve, { label: '见证', id, action: '通过' });
     const row = await this.prisma.witnessing.update({
       where: { id },
       data: { status: '待排期', agent: body.agent || '周业务' },
@@ -73,8 +92,12 @@ export class WitnessingsController {
     return ok(this.map(row));
   }
 
+  @AdminRoles('审核员', '管理员')
   @Post('admin/witnessings/:id/reject')
   async reject(@Param('id') id: string, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.witnessing.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`见证 ${id} 不存在`);
+    assertStatusIn(cur.status, WITNESS_RULES.reject, { label: '见证', id, action: '驳回' });
     const row = await this.prisma.witnessing.update({
       where: { id },
       data: { status: '已驳回' },
@@ -85,8 +108,12 @@ export class WitnessingsController {
     return ok(this.map(row));
   }
 
+  @AdminRoles('业务员', '管理员')
   @Post('admin/witnessings/:id/schedule')
   async schedule(@Param('id') id: string, @Body() dto: ScheduleDto, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.witnessing.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`见证 ${id} 不存在`);
+    assertStatusIn(cur.status, WITNESS_RULES.schedule, { label: '见证', id, action: '排期' });
     const row = await this.prisma.witnessing.update({
       where: { id },
       data: {
@@ -109,8 +136,12 @@ export class WitnessingsController {
     return ok(this.map(row));
   }
 
+  @AdminRoles('管理员')
   @Patch('admin/witnessings/:id/agent')
   async assign(@Param('id') id: string, @Body() body: { agent: string }, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.witnessing.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`见证 ${id} 不存在`);
+    assertStatusIn(cur.status, WITNESS_RULES.assignAgent, { label: '见证', id, action: '分配业务员' });
     const row = await this.prisma.witnessing.update({
       where: { id },
       data: { agent: body.agent },
@@ -121,8 +152,15 @@ export class WitnessingsController {
     return ok(this.map(row));
   }
 
+  @AdminRoles('业务员', '管理员')
   @Post('admin/witnessings/:id/complete')
   async complete(@Param('id') id: string, @Req() req: { user: { name?: string } }) {
+    const cur = await this.prisma.witnessing.findUnique({ where: { id } });
+    if (!cur) throw new NotFoundException(`见证 ${id} 不存在`);
+    assertStatusIn(cur.status, WITNESS_RULES.complete, { label: '见证', id, action: '标记完成' });
+    if (!cur.scheduleAt) {
+      throw new ConflictException(`见证 ${id} 尚未排期，不能标记完成`);
+    }
     const ceremonyHash = shortHash(`${id}:ceremony:${Date.now()}`);
     const row = await this.prisma.witnessing.update({
       where: { id },

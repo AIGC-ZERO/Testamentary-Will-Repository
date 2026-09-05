@@ -1,6 +1,19 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  NotFoundException,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { IsOptional, IsString } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminRoles, UserOnly } from '../common/roles';
+import { assertStatusIn, BUSINESS_RULES, nextBusinessStatus } from '../common/state-machine';
 import { formatDateTime, ok } from '../common/utils';
 
 class CreateBusinessDto {
@@ -61,14 +74,15 @@ export class BusinessesController {
     return ok(list.map(this.mapBiz));
   }
 
+  @UserOnly()
   @Post('businesses')
-  async create(@Body() dto: CreateBusinessDto, @Req() req: { user: { sub: string; kind: string; name?: string } }) {
+  async create(@Body() dto: CreateBusinessDto, @Req() req: { user: { sub: string; name?: string } }) {
     const orderCode = `ORD${Date.now().toString().slice(-10)}`;
     const row = await this.prisma.businessOrder.create({
       data: {
         orderCode,
         bizId: BigInt(Date.now()),
-        userId: req.user.kind === 'user' ? req.user.sub : undefined,
+        userId: req.user.sub,
         businessCode: dto.businessCode,
         businessModel: dto.businessModel || '0',
         businessStatus: '00',
@@ -88,8 +102,20 @@ export class BusinessesController {
     return ok(this.mapBiz(row), '创建成功');
   }
 
+  @UserOnly()
   @Post('businesses/:orderCode/cancel')
-  async cancel(@Param('orderCode') orderCode: string, @Req() req: { user: { name?: string } }) {
+  async cancel(@Param('orderCode') orderCode: string, @Req() req: { user: { sub: string; name?: string } }) {
+    const cur = await this.prisma.businessOrder.findUnique({ where: { orderCode } });
+    if (!cur) throw new NotFoundException(`业务单 ${orderCode} 不存在`);
+    // 只能作废本人名下的业务单（历史无归属数据禁止用户侧作废）
+    if (!cur.userId || cur.userId !== req.user.sub) {
+      throw new ForbiddenException('只能作废本人的业务单');
+    }
+    assertStatusIn(cur.businessStatus, BUSINESS_RULES.cancel, {
+      label: '业务单',
+      id: orderCode,
+      action: '作废',
+    });
     const row = await this.prisma.businessOrder.update({
       where: { orderCode },
       data: { businessStatus: '11' },
@@ -100,11 +126,12 @@ export class BusinessesController {
     return ok(this.mapBiz(row), '已作废');
   }
 
+  @AdminRoles('审核员', '业务员', '管理员')
   @Post('admin/businesses/:orderCode/advance')
   async advance(@Param('orderCode') orderCode: string, @Req() req: { user: { name?: string } }) {
     const cur = await this.prisma.businessOrder.findUnique({ where: { orderCode } });
-    if (!cur) return ok(null, '不存在');
-    const next = cur.businessStatus === '00' ? '01' : cur.businessStatus === '01' ? '02' : cur.businessStatus;
+    if (!cur) throw new NotFoundException(`业务单 ${orderCode} 不存在`);
+    const next = nextBusinessStatus(cur.businessStatus, orderCode);
     const row = await this.prisma.businessOrder.update({
       where: { orderCode },
       data: { businessStatus: next },
