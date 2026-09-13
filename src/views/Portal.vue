@@ -5,8 +5,8 @@
       <header class="hero">
         <SealLogo :size="56" :font="14" />
         <div>
-          <div class="brand">岛城遗嘱库综合服务平台</div>
-          <p>青岛市遗嘱登记、见证、保管与纠纷调解一体化服务入口</p>
+          <div class="brand">中国司法遗嘱数据库（系统）</div>
+          <p>遗嘱登记、见证、保管与纠纷调解一体化服务入口</p>
         </div>
       </header>
 

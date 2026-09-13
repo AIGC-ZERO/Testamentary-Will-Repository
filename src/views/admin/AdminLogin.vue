@@ -27,7 +27,7 @@
       <div class="brand">
         <SealLogo :size="44" :font="12" />
         <div>
-          <h1>岛城遗嘱库后台</h1>
+          <h1>中国司法遗嘱数据库（系统）后台</h1>
           <p>审核员 / 业务员 / 管理员登录</p>
         </div>
       </div>

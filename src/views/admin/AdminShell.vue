@@ -7,7 +7,7 @@
       <div class="brand">
         <SealLogo :size="36" :font="11" />
         <div>
-          <div class="title">岛城遗嘱库</div>
+          <div class="title">中国司法遗嘱数据库（系统）</div>
           <div class="sub">后台管理系统</div>
         </div>
       </div>

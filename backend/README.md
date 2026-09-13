@@ -1,4 +1,4 @@
-# 岛城遗嘱库 · Backend API
+# 中国司法遗嘱数据库（系统） · Backend API
 
 NestJS + Prisma + PostgreSQL，对齐 H5 / 管理后台前端。
 

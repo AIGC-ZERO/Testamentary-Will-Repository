@@ -2,12 +2,12 @@ import { reactive } from 'vue'
 import { createSeedData } from './seed'
 
 export const BRAND = {
-  name: '岛城遗嘱库',
-  platform: '青岛岛城',
-  welcomeFull: '欢迎登录青岛岛城遗嘱库',
-  welcomeShort: '欢迎登录岛城遗嘱库',
-  platformTitle: '岛城遗嘱库平台',
-  serviceName: '岛城遗嘱库综合服务平台',
+  name: '中国司法遗嘱数据库（系统）',
+  platform: '中国司法',
+  welcomeFull: '欢迎登录中国司法遗嘱数据库（系统）',
+  welcomeShort: '欢迎登录中国司法遗嘱数据库（系统）',
+  platformTitle: '中国司法遗嘱数据库（系统）',
+  serviceName: '中国司法遗嘱数据库（系统）',
 }
 
 const STORAGE_KEY = 'will-demo-state-v5'

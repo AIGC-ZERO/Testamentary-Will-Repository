@@ -2,7 +2,7 @@
   <div class="user-main">
     <div class="header">
       <div class="user-name">{{ store.user.name }}您好</div>
-      <div class="welcome-title">欢迎登录青岛岛城遗嘱库</div>
+      <div class="welcome-title">欢迎登录中国司法遗嘱数据库（系统）</div>
     </div>
 
     <div class="menu-list">

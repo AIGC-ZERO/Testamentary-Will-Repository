@@ -1,7 +1,7 @@
 <template>
   <div class="login-page">
     <div class="login-container">
-      <h1 class="login-header">欢迎登录岛城遗嘱库</h1>
+      <h1 class="login-header">欢迎登录中国司法遗嘱数据库（系统）</h1>
 
       <div class="login-tabs">
         <div class="tab-item" :class="{ active: tab==='sms' }" @click="tab='sms'">验证码登录</div>

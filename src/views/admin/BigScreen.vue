@@ -11,7 +11,7 @@
       </div>
       <div class="head-center">
         <div class="deco-l"></div>
-        <h1>岛城遗嘱库 · 智慧运营驾驶舱</h1>
+        <h1>中国司法遗嘱数据库（系统） · 智慧运营驾驶舱</h1>
         <div class="deco-r"></div>
       </div>
       <div class="head-right">
@@ -312,7 +312,7 @@ const tickerItems = computed(() => {
   store.audits.slice(0, 8).forEach(a => items.push(`【审计】${a.at} ${a.who} ${a.action}`))
   store.sms.slice(0, 4).forEach(s => items.push(`【短信】${s.tpl} → ${s.to} · ${s.status}`))
   store.businesses.slice(0, 4).forEach(b => items.push(`【业务】${b.orderCode} ${BUSINESS_MAP[b.businessCode]?.name || ''} ${b.applicantName || ''}`))
-  return items.length ? items : ['岛城遗嘱库智慧驾驶舱运行中']
+  return items.length ? items : ['中国司法遗嘱数据库（系统）智慧驾驶舱运行中']
 })
 
 function updateClock() {
@@ -398,7 +398,7 @@ function buildPoints() {
       id: 'hq',
       kind: 'hq',
       kindLabel: '服务中心',
-      title: '岛城遗嘱库运营中心',
+      title: '中国司法遗嘱数据库（系统）运营中心',
       region: GEO.hq.region,
       status: '运行中',
       desc: store.partyB.address,
